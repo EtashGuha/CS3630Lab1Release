@@ -10,6 +10,7 @@ from sklearn import svm, metrics
 from skimage import io, feature, filters, exposure, color
 from skimage.feature import hog
 import skimage
+import sklearn
 import ransac_score
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler, Normalizer
@@ -29,8 +30,34 @@ class RGB2GrayTransformer(BaseEstimator, TransformerMixin):
  
     def transform(self, X, y=None):
         """perform the transformation and return an array"""
+        
         return np.array([skimage.color.rgb2gray(img) for img in X])
      
+class CannyEdge(BaseEstimator, TransformerMixin):
+    """
+    Convert an array of RGB images to grayscale
+    """
+ 
+    def __init__(self):
+        pass
+ 
+    def fit(self, X, y=None):
+        """returns itself"""
+        return self
+ 
+    def transform(self, X, y=None):
+        """perform the transformation and return an array"""
+        edges = np.array([np.argwhere(feature.canny(img) == True) for img in X])
+        for edge in edges:
+            ransac = sklearn.linear_model.RANSACRegressor()
+            first_x = edge[:, 0]
+            first_x = np.expand_dims(first_x, axis=1)
+            first_y = edge[:, 1]
+            breakpoint()
+            ransac.fit(first_x, first_y)
+
+            breakpoint()
+        return edges
  
 class HogTransformer(BaseEstimator, TransformerMixin):
     """
@@ -155,6 +182,12 @@ class ImageClassifier:
         ########################
 
         # Please do not modify the return type below
+        grayify = RGB2GrayTransformer()
+        cannyfy = CannyEdge()
+        X_train_gray = grayify.fit_transform(data)
+        breakpoint()
+        edges1 = cannyfy.fit_transform(X_train_gray)
+        breakpoint()
         return slope, intercept
         
 def main():
