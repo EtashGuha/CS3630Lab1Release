@@ -15,6 +15,7 @@ import ransac_score
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler, Normalizer
 from sklearn.linear_model import SGDClassifier
+import matplotlib.pyplot as plt
 
 class RGB2GrayTransformer(BaseEstimator, TransformerMixin):
     """
@@ -47,17 +48,32 @@ class CannyEdge(BaseEstimator, TransformerMixin):
  
     def transform(self, X, y=None):
         """perform the transformation and return an array"""
-        edges = np.array([np.argwhere(feature.canny(img) == True) for img in X])
-        for edge in edges:
-            ransac = sklearn.linear_model.RANSACRegressor()
-            first_x = edge[:, 0]
+        intercepts = []
+        slopes = []
+        edges = np.array([np.argwhere(feature.canny(img, sigma=5) == True) for img in X])
+        # breakpoint()
+        for idx, edge in enumerate(edges):
+            ransac = sklearn.linear_model.RANSACRegressor(residual_threshold=.625)
+            first_x = edge[:, 1]
+            # plt.plot(LineX, line_y)
             first_x = np.expand_dims(first_x, axis=1)
-            first_y = edge[:, 1]
-            breakpoint()
-            ransac.fit(first_x, first_y)
-
-            breakpoint()
-        return edges
+            first_y = edge[:, 0]
+            try:
+                ransac.fit(first_x, first_y)
+            except:
+                plt.scatter(first_x, first_y)
+                plt.imshow(X[idx])
+                plt.savefig("test.png")
+                breakpoint()
+            slopes.append(ransac.estimator_.coef_)
+            intercepts.append(ransac.estimator_.intercept_)
+            LineX = np.arange(0, 240)
+            
+            line_y = ransac.predict(LineX.reshape(-1, 1))
+            # plt.plot(LineX, line_y)
+            # plt.imshow(X[0])
+            # plt.show()
+        return slopes, intercepts
  
 class HogTransformer(BaseEstimator, TransformerMixin):
     """
@@ -185,9 +201,7 @@ class ImageClassifier:
         grayify = RGB2GrayTransformer()
         cannyfy = CannyEdge()
         X_train_gray = grayify.fit_transform(data)
-        breakpoint()
-        edges1 = cannyfy.fit_transform(X_train_gray)
-        breakpoint()
+        slope, intercept = cannyfy.fit_transform(X_train_gray)
         return slope, intercept
         
 def main():
